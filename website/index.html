@@ -26,21 +26,34 @@
     <h4 class="text-secondary mb-0" id="site_title">###REPLACE_ME_SITE_NAME###</h4>
     <h1 class="mb-2" id="site_current_path">&nbsp;</h1>
 
-    <table id="listing" class="table font-monospace">
-        <thead>
-            <tr>
-                <th id="icon_header" style="display: table-cell;"></th>
-                <th id="key_header" style="display: table-cell;">Key</th>
-                <th id="size_header" style="display: table-cell;">Size</th>
-                <th id="modified_header" style="display: table-cell;">Last Modified</th>
-                <th id="class_header" style="display: table-cell;">Storage Class</th>
-            </tr>
-        </thead>
-        <tbody id="listingBody"></tbody>
-    </table>
-    <div id="bottom_nav">
-        <div class="d-inline-block align-top align-top pt-1 ps-2" id="colors_word_close">Powered by <a href="https://github.com/aws-samples/public-file-browser-for-amazon-s3">Public File Browser for Amazon S3</a></div>
+    <div class="d-flex align-items-center gap-2 mb-3" id="gallery_toolbar">
+        <i class="bi bi-image" style="font-size: 14px;" aria-hidden="true"></i>
+        <input type="range" id="tileSizeSlider" class="form-range" min="90" max="260" value="140" aria-label="Thumbnail size">
+        <i class="bi bi-image" style="font-size: 24px;" aria-hidden="true"></i>
     </div>
+
+    <div id="listing" class="gallery_grid"></div>
+    <div id="bottom_nav">
+        <div class="d-inline-block align-top align-top pt-1 ps-2" id="colors_word_close">Powered by <a href="https://github.com/earlonipa/file-browser-for-amazon-s3">Public File Browser for Amazon S3</a></div>
+    </div>
+
+    <div class="modal fade" id="mediaGalleryModal" tabindex="-1" aria-hidden="true" aria-labelledby="mediaGalleryCaption">
+        <div class="modal-dialog modal-dialog-centered gallery_dialog_dynamic">
+            <div class="modal-content bg-dark">
+                <div class="modal-header border-0 py-2">
+                    <span class="text-light small text-truncate" id="mediaGalleryCaption"></span>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center position-relative" id="mediaGalleryBody">
+                    <button type="button" class="btn btn-light gallery_nav gallery_nav_prev" id="mediaGalleryPrev" aria-label="Previous">&#10094;</button>
+                    <div id="mediaGalleryContent"></div>
+                    <button type="button" class="btn btn-light gallery_nav gallery_nav_next" id="mediaGalleryNext" aria-label="Next">&#10095;</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="thumbHoverPreview" aria-hidden="true"></div>
 
     <script src="/pfb_for_s3/js/bootstrap.bundle.min.js"></script>
     <script src="/pfb_for_s3/js/jquery-3.7.1.min.js"></script>
