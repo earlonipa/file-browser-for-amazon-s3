@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>###REPLACE_ME_SITE_NAME### - Sign in</title>
+    <link href="/pfb_for_s3/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/pfb_for_s3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/pfb_for_s3/css/main.css" rel="stylesheet">
+    <meta name="robots" content="noindex, nofollow" />
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/pfb_for_s3/icon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/pfb_for_s3/icon/favicon-16x16.png">
+    <link rel="manifest" href="/pfb_for_s3/icon/site.webmanifest">
+    <link rel="mask-icon" href="/pfb_for_s3/icon/safari-pinned-tab.svg" color="#ff9900">
+    <link rel="shortcut icon" href="/pfb_for_s3/icon/favicon.ico">
+    <meta name="msapplication-TileColor" content="#ff9900">
+    <meta name="msapplication-config" content="/pfb_for_s3/icon/browserconfig.xml">
+    <meta name="theme-color" content="#ff9900">
+</head>
+<body>
+<div class="container-xxl mt-3">
+    <h4 class="text-secondary mb-0" id="site_title">###REPLACE_ME_SITE_NAME###</h4>
+    <h1 class="mb-4">Sign in</h1>
+
+    <div id="login_card" class="login_card">
+        <form id="loginForm" novalidate>
+            <div class="mb-3">
+                <label for="loginUsername" class="form-label">Username</label>
+                <input type="text" class="form-control" id="loginUsername" autocomplete="username" required>
+            </div>
+            <div class="mb-3">
+                <label for="loginPassword" class="form-label">Password</label>
+                <input type="password" class="form-control" id="loginPassword" autocomplete="current-password" required>
+            </div>
+            <div id="loginError" class="text-danger small mb-3" role="alert" style="display:none;"></div>
+            <button type="submit" class="btn btn-dark" id="loginSubmit">Sign in</button>
+            <a href="/" class="btn btn-link">Cancel</a>
+        </form>
+    </div>
+
+    <div id="login_not_configured" class="text-secondary" style="display:none;">
+        Login isn't configured for this deployment yet. See the README for setup steps.
+    </div>
+</div>
+
+<script src="/pfb_for_s3/js/aws-sdk-js-v2.1560.0.min.js"></script><!-- nosemgrep: missing-integrity -->
+<script type="text/javascript">
+    let awsConfigOptions = {
+        site_name: "###REPLACE_ME_SITE_NAME###",
+        identity_pool_id: "###REPLACE_ME_IDENTITY_POOL_ID###",
+        user_pool_id: "###REPLACE_ME_USER_POOL_ID###",
+        user_pool_client_id: "###REPLACE_ME_USER_POOL_CLIENT_ID###"
+    }
+</script>
+<script src="/pfb_for_s3/js/auth.js"></script>
+<script type="text/javascript">
+    function escapeHtml(text) {
+        const div = document.createElement('div')
+        div.textContent = text
+        return div.innerHTML
+    }
+
+    function getRedirectTarget() {
+        const params = new URLSearchParams(window.location.search)
+        const next = params.get('next')
+        return next && next.startsWith('/') ? next : '/'
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (!authIsConfigured()) {
+            document.getElementById('login_card').style.display = 'none'
+            document.getElementById('login_not_configured').style.display = 'block'
+            return
+        }
+        // Already signed in with a live session - no need to log in again.
+        if (authIsLoggedIn()) {
+            window.location.href = getRedirectTarget()
+            return
+        }
+
+        const form = document.getElementById('loginForm')
+        const errorEl = document.getElementById('loginError')
+        const submitBtn = document.getElementById('loginSubmit')
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault()
+            errorEl.style.display = 'none'
+            const username = document.getElementById('loginUsername').value.trim()
+            const password = document.getElementById('loginPassword').value
+            if (!username || !password) { return }
+
+            submitBtn.disabled = true
+            submitBtn.textContent = 'Signing in…'
+
+            const cognitoIdp = authGetCognitoIdpClient()
+            cognitoIdp.initiateAuth({
+                AuthFlow: 'USER_PASSWORD_AUTH',
+                ClientId: awsConfigOptions.user_pool_client_id,
+                AuthParameters: {
+                    USERNAME: username,
+                    PASSWORD: password
+                }
+            }, function(err, data) {
+                submitBtn.disabled = false
+                submitBtn.textContent = 'Sign in'
+                if (err) {
+                    errorEl.textContent = 'Sign in failed: ' + (err.message || 'incorrect username or password.')
+                    errorEl.style.display = 'block'
+                    return
+                }
+                if (data.ChallengeName) {
+                    // e.g. NEW_PASSWORD_REQUIRED for a freshly admin-created account. This basic
+                    // login page doesn't implement challenge flows - the account should have its
+                    // password finalized via `aws cognito-idp admin-set-user-password` first.
+                    errorEl.textContent = 'This account requires an additional step (' + data.ChallengeName + ') that isn\'t supported by this login page yet. See the README.'
+                    errorEl.style.display = 'block'
+                    return
+                }
+                authStoreNewSession(data.AuthenticationResult, username)
+                window.location.href = getRedirectTarget()
+            })
+        })
+    })
+</script>
+</body>
+</html>
