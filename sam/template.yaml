@@ -435,6 +435,10 @@ Resources:
         - public-file-browser-Identity-Pool-${Unique}
         - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
       AllowUnauthenticatedIdentities: true
+      CognitoIdentityProviders:
+        - ClientId: !Ref 'CognitoUserPoolClient'
+          ProviderName: !GetAtt 'CognitoUserPool.ProviderName'
+          ServerSideTokenCheck: true
   CognitoIdentityUnauthenticatedRole:
     Type: AWS::IAM::Role
     Metadata:
@@ -476,6 +480,96 @@ Resources:
       IdentityPoolId: !Ref 'CognitoIdentityPool'
       Roles:
         unauthenticated: !GetAtt 'CognitoIdentityUnauthenticatedRole.Arn'
+        authenticated: !GetAtt 'CognitoIdentityAuthenticatedRole.Arn'
+  # --- File manager login (protects the upload feature) ---
+  # A Cognito User Pool provides real username/password authentication. Successful sign-in
+  # exchanges a User Pool ID token for temporary AWS credentials tied to CognitoIdentityAuthenticatedRole
+  # below, which is the only role permitted to write (s3:PutObject) to the files bucket.
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub
+        - public-file-browser-Users-${Unique}
+        - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+      # Admin-created users only - there is intentionally no public sign-up flow for this file
+      # manager. Create accounts with `aws cognito-idp admin-create-user`.
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+      AutoVerifiedAttributes: []
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 12
+          RequireLowercase: true
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+      UsernameAttributes: []
+      MfaConfiguration: 'OFF'
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub
+        - public-file-browser-WebClient-${Unique}
+        - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+      UserPoolId: !Ref 'CognitoUserPool'
+      # No client secret: this client is used directly from public, unauthenticated JS in the
+      # browser, where a "secret" could never actually be kept secret.
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED
+      AccessTokenValidity: 4
+      IdTokenValidity: 4
+      RefreshTokenValidity: 1
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+  CognitoIdentityAuthenticatedRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: While not ideal, this is necessary to prevent a circular dependency. The resource uses the stack-id as part of the resource name, and the only properties of an IAM Role requiring replacement are Path and RoleName.
+    Properties:
+      RoleName: !Sub
+        - public-file-browser-Cognito-Auth-${Unique}
+        - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                cognito-identity.amazonaws.com:aud: !Ref 'CognitoIdentityPool'
+              ForAnyValue:StringLike:
+                cognito-identity.amazonaws.com:amr: authenticated
+      Policies:
+        - PolicyName: File-Access-ReadWrite
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - !Sub
+                    - arn:${AWS::Partition}:s3:::public-file-browser-files-${Unique}
+                    - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+              - Effect: Allow
+                Action:
+                  # Only signed-in users may write. Deliberately does not include Delete* - the
+                  # file manager only uploads new objects, it does not remove existing ones.
+                  - s3:PutObject
+                Resource:
+                  - !Sub
+                    - arn:${AWS::Partition}:s3:::public-file-browser-files-${Unique}/*
+                    - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
 Outputs:
   FileBrowserURL:
     Description: The web URL for the deployed Public File Browser for Amazon S3 solution
@@ -486,4 +580,9 @@ Outputs:
   WebInterfaceAppBucket:
     Description: The name of the Amazon S3 Bucket for the HTML/JS/CSS pages that make up the file browser web interface.
     Value: !Ref 'PublicWebsiteBucket'
-
+  FileManagerUserPoolId:
+    Description: Cognito User Pool ID - used to configure login.html / index.html and to create login accounts with `aws cognito-idp admin-create-user`.
+    Value: !Ref 'CognitoUserPool'
+  FileManagerUserPoolClientId:
+    Description: Cognito User Pool App Client ID - used to configure login.html / index.html.
+    Value: !Ref 'CognitoUserPoolClient'
