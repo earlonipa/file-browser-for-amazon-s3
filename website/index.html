@@ -30,11 +30,12 @@
         <i class="bi bi-image" style="font-size: 14px;" aria-hidden="true"></i>
         <input type="range" id="tileSizeSlider" class="form-range" min="90" max="260" value="140" aria-label="Thumbnail size">
         <i class="bi bi-image" style="font-size: 24px;" aria-hidden="true"></i>
+        <div id="auth_status" class="ms-auto small"></div>
     </div>
 
     <div id="listing" class="gallery_grid"></div>
     <div id="bottom_nav">
-        <div class="d-inline-block align-top align-top pt-1 ps-2" id="colors_word_close">Powered by <a href="https://github.com/earlonipa/file-browser-for-amazon-s3">Public File Browser for Amazon S3</a></div>
+        <div class="d-inline-block align-top align-top pt-1 ps-2" id="colors_word_close">Powered by <a href="https://github.com/earlonipa/public-file-browser-for-amazon-s3">Public File Browser for Amazon S3</a></div>
     </div>
 
     <div class="modal fade" id="mediaGalleryModal" tabindex="-1" aria-hidden="true" aria-labelledby="mediaGalleryCaption">
@@ -71,15 +72,21 @@
             //                           keeping this default. See AWS S3 API Docs for values.
             // identity_pool_id - Shouldn't need to change, but used to identify the Cognito pool
             //                    for temporary credentials.
+            // user_pool_id / user_pool_client_id - From the FileManagerUserPoolId /
+            //                    FileManagerUserPoolClientId CloudFormation stack outputs. Required
+            //                    for the login page / upload feature; leave blank to disable login.
             // bucket_name - Shouldn't need to change, but used to identify the source bucket during
             //               the list generation
             site_name: "###REPLACE_ME_SITE_NAME###",
             files_open_in_new_tab: ###REPLACE_ME_FILES_OPEN_MODE###,
             visible_storage_classes: "###REPLACE_ME_VISIBLE_STORAGE_CLASSES###",
             identity_pool_id: "###REPLACE_ME_IDENTITY_POOL_ID###",
+            user_pool_id: "###REPLACE_ME_USER_POOL_ID###",
+            user_pool_client_id: "###REPLACE_ME_USER_POOL_CLIENT_ID###",
             bucket_name: "###REPLACE_ME_BUCKET_NAME###"
         }
     </script>
+    <script src="/pfb_for_s3/js/auth.js"></script>
     <script src="/pfb_for_s3/js/main.js"></script>
 </div>
 </body>
