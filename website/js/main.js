@@ -339,7 +339,35 @@ $( document ).ready(function() {
     initMediaGallery();
     initGallerySizeSlider();
     initVideoThumbnailObserver();
+    initAuthStatus();
 });
+
+// --- Login status indicator (Sign in / Signed in as ... Sign out) in the toolbar ---
+function authIsConfigured() {
+    return !!awsConfigOptions.user_pool_id && awsConfigOptions.user_pool_id.indexOf('REPLACE_ME') === -1
+}
+
+function initAuthStatus() {
+    const el = document.getElementById('auth_status')
+    if (!el) { return }
+    if (!authIsConfigured()) {
+        // Login hasn't been set up for this deployment yet - stay silent rather than showing a
+        // broken/non-functional "Sign in" link.
+        el.innerHTML = ''
+        return
+    }
+    const session = authReadSession()
+    if (session && authIsLoggedIn()) {
+        el.innerHTML = '<span class="text-secondary">Signed in as ' + escapeHtml(session.username) + '</span> ' +
+            '<a href="#" id="authSignOutLink">Sign out</a>'
+        document.getElementById('authSignOutLink').addEventListener('click', function(e) {
+            e.preventDefault()
+            authLogout('/')
+        })
+    } else {
+        el.innerHTML = '<a href="/login.html">Sign in</a>'
+    }
+}
 
 // --- V2 gallery grid: tile size slider (persisted in the browser) ---
 const gallerySizeStorageKey = 'pfb_gallery_tile_size'

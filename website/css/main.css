@@ -1,4 +1,3 @@
-
 .table>:not(caption)>*>* {
     background-color: unset;
 }
@@ -213,4 +212,16 @@ h1 {
     touch-action: none;
     transform-origin: center center;
     will-change: transform;
+}
+
+/* Login page */
+.login_card {
+    max-width: 360px;
+    padding: 1.5rem;
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+}
+
+#auth_status a {
+    color: #495057;
 }
