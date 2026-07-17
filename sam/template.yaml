@@ -574,18 +574,12 @@ Outputs:
   FileBrowserURL:
     Description: The web URL for the deployed Public File Browser for Amazon S3 solution
     Value: !Sub 'https://${CloudFront.DomainName}'
-  CloudFrontDistributionId:
-    Description: CloudFront distribution ID - used by deploy.sh to invalidate the cache after uploading website files.
-    Value: !Ref 'CloudFront'
   PublicFilesBucket:
     Description: The name of the Amazon S3 Bucket for storing PUBLICLY ACCESSIBLE files.
     Value: !Ref 'PublicFilesBucket'
   WebInterfaceAppBucket:
     Description: The name of the Amazon S3 Bucket for the HTML/JS/CSS pages that make up the file browser web interface.
     Value: !Ref 'PublicWebsiteBucket'
-  IdentityPoolId:
-    Description: Cognito Identity Pool ID - used to configure index.html / login.html.
-    Value: !Ref 'CognitoIdentityPool'
   FileManagerUserPoolId:
     Description: Cognito User Pool ID - used to configure login.html / index.html and to create login accounts with `aws cognito-idp admin-create-user`.
     Value: !Ref 'CognitoUserPool'
